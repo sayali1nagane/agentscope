@@ -89,8 +89,5 @@ def init(
     # Warn if no model provider is set — easy to forget and leads to confusing errors later
     if model_provider is None:
         logger.warning(
-            "No model_provider specified. Remember to set one before creating agents."
+            "No model_provider specified. You will need to set one before making model calls."
         )
-
-    # Store global config (to be expanded with a proper config manager)
-    # Note: api_key is intentionally excluded from the stored config dic
