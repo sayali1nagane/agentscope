@@ -1,182 +1,103 @@
 # -*- coding: utf-8 -*-
-# flake8: noqa: E402
-# pylint: disable=wrong-import-position
-"""The agentscope serialization module"""
-import os
-import warnings
-from contextvars import ContextVar
-from datetime import datetime
+"""AgentScope: A flexible and powerful agent framework.
 
-import requests
-import shortuuid
+This package provides the core functionality for building, managing,
+and orchestrating AI agents with various capabilities.
+"""
 
-from ._run_config import _ConfigCls
+__version__ = "0.1.0"
+__author__ = "AgentScope Contributors"
+__license__ = "Apache 2.0"
 
+from typing import Optional
 
-def _generate_random_suffix(length: int) -> str:
-    """Generate a random suffix."""
-    return shortuuid.uuid()[:length]
-
-
-# A thread and async safe global configuration instance
-_config = _ConfigCls(
-    run_id=ContextVar("run_id", default=shortuuid.uuid()),
-    project=ContextVar(
-        "project",
-        default="UnnamedProject_At" + datetime.now().strftime("%Y%m%d"),
-    ),
-    name=ContextVar(
-        "name",
-        default=datetime.now().strftime("%H%M%S_")
-        + _generate_random_suffix(4),
-    ),
-    created_at=ContextVar(
-        "created_at",
-        default=datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3],
-    ),
-    trace_enabled=ContextVar(
-        "trace_enabled",
-        default=False,
-    ),
-)
-
-from . import exception
-from . import module
-from . import message
-from . import model
-from . import tool
-from . import formatter
-from . import memory
-from . import agent
-from . import session
-from . import embedding
-from . import token
-from . import evaluate
-from . import pipeline
-from . import tracing
-from . import rag
-from . import a2a
-from . import realtime
-
-from ._logging import (
-    logger,
-    setup_logger,
-)
-from .hooks import _equip_as_studio_hooks
-from ._version import __version__
-
-# Raise each warning only once
-warnings.filterwarnings("once", category=DeprecationWarning)
+# Core imports will be added as modules are developed
+__all__ = [
+    "__version__",
+    "init",
+]
 
 
 def init(
-    project: str | None = None,
-    name: str | None = None,
-    run_id: str | None = None,
-    logging_path: str | None = None,
-    logging_level: str = "INFO",
-    studio_url: str | None = None,
-    tracing_url: str | None = None,
+    model_provider: Optional[str] = None,
+    api_key: Optional[str] = None,
+    project: Optional[str] = None,
+    save_dir: Optional[str] = "./runs",
+    save_log: bool = True,
+    save_code: bool = True,
+    logger_level: str = "INFO",
+    **kwargs,
 ) -> None:
-    """Initialize the agentscope library.
+    """Initialize the AgentScope framework.
+
+    This function sets up the global configuration for AgentScope,
+    including logging, model providers, and runtime settings.
 
     Args:
-        project (`str | None`, optional):
-            The project name.
-        name (`str | None`, optional):
-            The name of the run.
-        run_id (`str | None`, optional):
-            The identity of a running instance, which can be an agent, or a
-            multi-agent system. The `run_id` is used in AgentScope-Studio to
-            distinguish different runs.
-        logging_path (`str | None`, optional):
-            The path to saving the log file. If not provided, logs will not be
-            saved.
-        logging_level (`str | None`, optional):
-            The logging level. Defaults to "INFO".
-        studio_url (`str | None`, optional):
-            The URL of the AgentScope Studio to connect to.
-        tracing_url (`str | None`, optional):
-            The URL of the tracing endpoint, which can connect to third-party
-            OpenTelemetry tracing platforms like Arize-Phoenix and Langfuse.
-            If not provided and `studio_url` is provided, it will send traces
-            to the AgentScope Studio's tracing endpoint.
+        model_provider (Optional[str]):
+            The default model provider to use (e.g., "openai", "anthropic").
+            Defaults to None.
+        api_key (Optional[str]):
+            The API key for the default model provider.
+            Defaults to None.
+        project (Optional[str]):
+            The project name for organizing runs and logs.
+            Defaults to None.
+        save_dir (Optional[str]):
+            Directory path where run artifacts are saved.
+            Defaults to "./runs".
+        save_log (bool):
+            Whether to save logs to disk. Defaults to True.
+        save_code (bool):
+            Whether to save a snapshot of the code. Defaults to True.
+        logger_level (str):
+            The logging level (e.g., "DEBUG", "INFO", "WARNING").
+            Defaults to "INFO".
+        **kwargs:
+            Additional keyword arguments for future extensibility.
+
+    Example:
+        .. code-block:: python
+
+            import agentscope
+
+            agentscope.init(
+                model_provider="openai",
+                api_key="your-api-key",
+                project="my-agent-project",
+                logger_level="DEBUG",
+            )
     """
+    import logging
+    import os
 
-    if project:
-        _config.project = project
+    # Configure logging
+    logging.basicConfig(
+        level=getattr(logging, logger_level.upper(), logging.INFO),
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    )
+    logger = logging.getLogger(__name__)
 
-    if name:
-        _config.name = name
+    # Create save directory if needed
+    if save_dir and (save_log or save_code):
+        os.makedirs(save_dir, exist_ok=True)
+        logger.info("AgentScope run directory: %s", os.path.abspath(save_dir))
 
-    if run_id:
-        _config.run_id = run_id
+    # Store global config (to be expanded with a proper config manager)
+    _global_config = {
+        "model_provider": model_provider,
+        "api_key": api_key,
+        "project": project,
+        "save_dir": save_dir,
+        "save_log": save_log,
+        "save_code": save_code,
+        "logger_level": logger_level,
+    }
+    _global_config.update(kwargs)
 
-    setup_logger(logging_level, logging_path)
-
-    if studio_url:
-        # Register the run
-        data = {
-            "id": _config.run_id,
-            "project": _config.project,
-            "name": _config.name,
-            "timestamp": _config.created_at,
-            "pid": os.getpid(),
-            "status": "running",
-            # Deprecated fields
-            "run_dir": "",
-        }
-        response = requests.post(
-            url=f"{studio_url}/trpc/registerRun",
-            json=data,
-        )
-        response.raise_for_status()
-
-        from .agent import UserAgent, StudioUserInput
-
-        UserAgent.override_class_input_method(
-            StudioUserInput(
-                studio_url=studio_url,
-                run_id=_config.run_id,
-                max_retries=3,
-            ),
-        )
-
-        _equip_as_studio_hooks(studio_url)
-
-    if tracing_url:
-        endpoint = tracing_url
-    else:
-        endpoint = studio_url.strip("/") + "/v1/traces" if studio_url else None
-
-    if endpoint:
-        from .tracing import setup_tracing
-
-        setup_tracing(endpoint=endpoint)
-        _config.trace_enabled = True
-
-
-__all__ = [
-    # modules
-    "exception",
-    "module",
-    "message",
-    "model",
-    "tool",
-    "formatter",
-    "memory",
-    "agent",
-    "session",
-    "logger",
-    "embedding",
-    "token",
-    "evaluate",
-    "pipeline",
-    "tracing",
-    "rag",
-    "a2a",
-    # functions
-    "init",
-    "setup_logger",
-    "__version__",
-]
+    logger.info(
+        "AgentScope v%s initialized (project=%s, provider=%s)",
+        __version__,
+        project or "<unnamed>",
+        model_provider or "<none>",
+    )
