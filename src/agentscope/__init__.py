@@ -86,14 +86,11 @@ def init(
     # Log a startup message so I can easily tell when init has been called
     logger.info("AgentScope v%s initialized (project=%s)", __version__, project or "<unnamed>")
 
+    # Warn if no model provider is set — easy to forget and leads to confusing errors later
+    if model_provider is None:
+        logger.warning(
+            "No model_provider specified. Remember to set one before creating agents."
+        )
+
     # Store global config (to be expanded with a proper config manager)
-    # Note: api_key is intentionally excluded from the stored config dict to
-    # avoid accidentally logging or serializing credentials.
-    _global_config = {
-        "model_provider": model_provider,
-        "project": project,
-        "save_dir": save_dir,
-        "save_log": save_log,
-        "save_code": save_code,
-        "logger_level": logger_level,
-    }
+    # Note: api_key is intentionally excluded from the stored config dic
