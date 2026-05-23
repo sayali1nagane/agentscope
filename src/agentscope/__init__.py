@@ -24,8 +24,8 @@ def init(
     project: Optional[str] = None,
     save_dir: Optional[str] = "./runs",
     save_log: bool = True,
-    save_code: bool = True,
-    logger_level: str = "INFO",
+    save_code: bool = False,  # Changed default: I rarely need code snapshots locally
+    logger_level: str = "DEBUG",  # Changed default: prefer verbose output during dev
     **kwargs,
 ) -> None:
     """Initialize the AgentScope framework.
@@ -49,10 +49,10 @@ def init(
         save_log (bool):
             Whether to save logs to disk. Defaults to True.
         save_code (bool):
-            Whether to save a snapshot of the code. Defaults to True.
+            Whether to save a snapshot of the code. Defaults to False.
         logger_level (str):
             The logging level (e.g., "DEBUG", "INFO", "WARNING").
-            Defaults to "INFO".
+            Defaults to "DEBUG".
         **kwargs:
             Additional keyword arguments for future extensibility.
 
@@ -98,6 +98,6 @@ def init(
     logger.info(
         "AgentScope v%s initialized (project=%s, provider=%s)",
         __version__,
-        project or "<unnamed>",
-        model_provider or "<none>",
+        project,
+        model_provider,
     )
