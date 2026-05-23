@@ -83,6 +83,9 @@ def init(
         os.makedirs(save_dir, exist_ok=True)
         logger.info("AgentScope run directory: %s", os.path.abspath(save_dir))
 
+    # Log a startup message so I can easily tell when init has been called
+    logger.info("AgentScope v%s initialized (project=%s)", __version__, project or "<unnamed>")
+
     # Store global config (to be expanded with a proper config manager)
     _global_config = {
         "model_provider": model_provider,
@@ -92,3 +95,4 @@ def init(
         "save_log": save_log,
         "save_code": save_code,
         "logger_level": logger_level,
+    }
