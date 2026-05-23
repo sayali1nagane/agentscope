@@ -87,9 +87,10 @@ def init(
     logger.info("AgentScope v%s initialized (project=%s)", __version__, project or "<unnamed>")
 
     # Store global config (to be expanded with a proper config manager)
+    # Note: api_key is intentionally excluded from the stored config dict to
+    # avoid accidentally logging or serializing credentials.
     _global_config = {
         "model_provider": model_provider,
-        "api_key": api_key,
         "project": project,
         "save_dir": save_dir,
         "save_log": save_log,
