@@ -25,7 +25,7 @@ def init(
     save_dir: Optional[str] = "./runs",
     save_log: bool = True,
     save_code: bool = False,  # Changed default: I rarely need code snapshots locally
-    logger_level: str = "DEBUG",  # Changed default: prefer verbose output during dev
+    logger_level: str = "INFO",  # Changed back to INFO: DEBUG is too noisy for day-to-day use
     **kwargs,
 ) -> None:
     """Initialize the AgentScope framework.
@@ -52,7 +52,7 @@ def init(
             Whether to save a snapshot of the code. Defaults to False.
         logger_level (str):
             The logging level (e.g., "DEBUG", "INFO", "WARNING").
-            Defaults to "DEBUG".
+            Defaults to "INFO".
         **kwargs:
             Additional keyword arguments for future extensibility.
 
@@ -65,7 +65,7 @@ def init(
                 model_provider="openai",
                 api_key="your-api-key",
                 project="my-agent-project",
-                logger_level="DEBUG",
+                logger_level="INFO",
             )
     """
     import logging
@@ -92,12 +92,3 @@ def init(
         "save_log": save_log,
         "save_code": save_code,
         "logger_level": logger_level,
-    }
-    _global_config.update(kwargs)
-
-    logger.info(
-        "AgentScope v%s initialized (project=%s, provider=%s)",
-        __version__,
-        project,
-        model_provider,
-    )
